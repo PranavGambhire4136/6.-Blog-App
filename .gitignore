@@ -1,0 +1,34 @@
+# === Node.js / Backend ===
+Backend/node_modules/
+Backend/.env
+Backend/package-lock.json
+Backend/debug.log
+
+# === React Native / Frontend ===
+Frontend/node_modules/
+Frontend/.expo/
+Frontend/.expo-shared/
+Frontend/.env
+Frontend/.DS_Store
+Frontend/package-lock.json
+
+# Metro bundler cache
+Frontend/.metro-cache/
+
+# Build output
+Frontend/dist/
+Frontend/build/
+
+# Expo
+Frontend/expo-debug.log
+
+# Misc
+*.log
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
