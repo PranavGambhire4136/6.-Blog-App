@@ -1,0 +1,27 @@
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
+
+const LogOut = async () => {
+    const token = await AsyncStorage.getItem('token');
+
+    if (!token) {
+      console.log('No token found');
+      return;
+    }
+    console.log("token",token);
+    
+    const res = await axios.get("http://192.168.31.65:4000/api/vi/user/logout",
+      {
+        headers: {
+          Cookie: `token=${token}` // The critical part
+        },
+        withCredentials: true // Ensures cookies are properly attached
+      }
+    )
+
+    await AsyncStorage.removeItem('token');
+
+    console.log("logOut success",res.data);
+  }
