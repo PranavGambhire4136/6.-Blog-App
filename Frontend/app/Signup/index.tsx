@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Formik } from 'formik';
 import { useNavigation } from 'expo-router';
 
-export default function LogOut() {
+export default function Signup() {
 
 
   const navigation = useNavigation();

@@ -1,4 +1,4 @@
-import { Button, ScrollView, Text, View } from "react-native";
+import { Button, ScrollView, Text, View, Image, TouchableOpacity } from "react-native";
 import Blog from "./components/Blog";
 import BlogList from "./components/BlogList";
 import { StatusBar } from 'react-native';
@@ -6,6 +6,8 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useNavigation } from '@react-navigation/native';
 import Octicons from '@expo/vector-icons/Octicons';
+import Entypo from '@expo/vector-icons/Entypo';
+import SideBar from "./components/SideBar";
 
 export default function Index() {
 
@@ -44,17 +46,7 @@ export default function Index() {
         backgroundColor="#fff"
       />
 
-      {!isSideBar && (
-        <View style={{position: "relative", top: 0, left: 0, zIndex: 1}}>
-          <Octicons name="three-bars" size={24} color="black" onPress={() => setIsSideBar(true)} />
-        </View>
-      )}
-
-      {isSideBar && (
-        <View style={{position: "relative", top: 0, left: 0, zIndex: 1, width: "70%", height: "100%", backgroundColor: "#9adab9"}}>
-          
-        </View>
-      )}
+      <SideBar />
 
       <Text>Home</Text>
       {/* <Blog /> */}
