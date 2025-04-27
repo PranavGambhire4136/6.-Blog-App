@@ -6,7 +6,11 @@ export const createComment = async (req, res) => {
     try {
         const { content } = req.body;
         const user = req.user.userId;
-        const post = req.params.post; 
+        const post = req.params.post;
+        // console.log(req);
+
+
+        console.log("createComment req.body", req.body);
 
         if (!content || !user || !post) {
             return res.status(400).json({ success: false, message: "All fields are required" });

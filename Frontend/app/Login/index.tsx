@@ -16,13 +16,13 @@ export default function Login() {
 
       if (res.data.success) {
         console.log(res.data.token);
-        await AsyncStorage.setItem("token", res.data.token);
+        const data = JSON.stringify({token: res.data.token, time: Date.now()});
+        await AsyncStorage.setItem("token", data);
         console.log("Cookie stored successfully!");
       }
     } catch (error) {
       console.error("Error occurred during login:", error);
     }
-
   }
 
   return (
@@ -30,7 +30,7 @@ export default function Login() {
       <Text style = {styles.heading}>Login</Text>
       <View style={styles.form}>
         <Formik
-          initialValues={{ email: '', password: '' }}
+          initialValues={{ email: 'pranavgambhire7v@gmail.com', password: 'Pranav@9890' }}
           onSubmit={(values) => {
             console.log(values);
             login(values);

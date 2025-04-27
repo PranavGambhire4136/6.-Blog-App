@@ -102,3 +102,21 @@ export const getUserPosts = async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
+
+export const getSinglePost = async (req, res) => {
+    try {
+        console.log("getSinglePost req.params", req.params);
+        const {id} = req.params;
+        const post = await Post.findById(id).populate("author", "username").populate({
+            path: "comments", 
+            populate: {
+                path: "user",
+                select: "username"
+            }
+        });
+        return res.status(200).json({ success: true, post });
+    } catch (error) {
+        console.error("error while getSinglePost", error.message);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+}

@@ -3,7 +3,8 @@ import { configDotenv } from "dotenv";
 configDotenv();
 
 export const isThere = (req, res, next) => {
-    console.log("getHeader started");
+    // console.log("getHeader started");
+    console.log(req.cookies)
     const headerToken = req.cookies.token;
     // console.log("from getHeader",headerToken);
 

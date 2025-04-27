@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native'
 import React from 'react'
+import { useRouter } from 'expo-router';
 import Blog from './Blog';
 
 interface BlogListProps {
@@ -12,21 +13,24 @@ interface BlogListProps {
 }
 
 const BlogList: React.FC<BlogListProps> = ({ blog }) => {
-
+    const router = useRouter();
     const [data, setData] = React.useState({
         title: blog.title,
         body: blog.body.slice(0, 200) + "..."
     });
 
-
-    const filterData = () => {
-
+    const handlePress = () => {
+      console.log("pressed");
+      router.push({
+        pathname: "/blog/[id]",
+        params: { id: blog._id }
+      });
     }
-    
+
     return (
         <TouchableOpacity 
           style={styles.container}
-          onPress={() => filterData()}
+          onPress={() => handlePress()}
         >
             <Image
               source={{ uri: blog.image }}

@@ -39,7 +39,6 @@ export default function Index() {
   // ]
 
   const [blogs, setBlogs] = useState([]);
-
   const getBlog = async () => {
     try {
       console.log("starting fetching")
@@ -56,6 +55,7 @@ export default function Index() {
     getBlog();
   }, [])
 
+
   return (
     <View style={styles.container}>
       <StatusBar
@@ -63,20 +63,19 @@ export default function Index() {
         backgroundColor="#fff"
       />
 
-      <SideBar />
-
+      {/* <SideBar /> */}
       {/* <Text style={styles.title}>Home</Text> */}
       <ScrollView style={styles.scrollView}>
-        {blogs.map((blog) => <BlogList key={blog._id} blog={blog} />)}
+        {blogs.reverse().map((blog) => <BlogList key={blog._id} blog={blog} />)}
       </ScrollView>
 
         {/* <Blog /> */}
 
       <TouchableOpacity 
         style={styles.signupButton}
-        onPress={() => router.push("/Signup")}
+        onPress={() => router.push("/Login")}
       >
-        <Text style={styles.buttonText}>Go to Signup</Text>
+        <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
     </View>
   );

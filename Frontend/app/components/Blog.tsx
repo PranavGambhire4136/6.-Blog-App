@@ -1,13 +1,93 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, TextInput } from 'react-native';
-import React from 'react';
+import React, { useEffect } from 'react';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { Formik } from 'formik';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function Blog() {
+interface BlogProps {
+  blogId: string;
+}
+
+interface BlogComment {
+  id: number;
+  content: string;
+  user: string;
+  createdAt: string;
+}
+
+interface BlogData {
+  _id: string;
+  title: string;
+  body: string;
+  image: string;
+  author: string;
+  comment: BlogComment[];
+}
+
+export default function Blog({ blogId }: BlogProps) {
   const [isLiked, setIsLiked] = React.useState(false);
   const [isDisliked, setIsDisliked] = React.useState(false);
+  const [blog, setBlog] = React.useState<BlogData | null>(null);
+  const router = useRouter();
+  const [comments, setComments] = React.useState<BlogComment[]>([]);
+
+  const getBlog = async () => {
+    try {
+      console.log("Fetching blog...");
+      const id = blogId;
+      const res = await axios.get(`http://192.168.31.65:4000/api/vi/post/getSinglePost/${id}`);
+      setBlog(res.data.post);
+      console.log("comments", res.data.post.comments);
+    } catch (error) {
+      console.error("Error fetching blog:", error);
+      router.back();
+    }
+  }
+
+  const addComment = async (values) => {
+    try {
+      const tokenData = await AsyncStorage.getItem('token');
+      if (!tokenData) {
+        console.warn("Token not found");
+        return;
+      }
+  
+      const { token, time } = JSON.parse(tokenData);
+      const currentTime = Date.now();
+  
+      // Check if 5 minutes (5 * 60 * 1000 milliseconds) are over
+      if (currentTime - time > 5 * 60 * 1000) {
+        await AsyncStorage.removeItem('token');
+        console.warn("Token expired");
+        return;
+      }
+  
+      console.log("Comment:", values.comment);
+      const datatosend = {
+        content: values.comment,
+      };
+  
+      const res = await axios.post(
+        `http://192.168.31.65:4000/api/vi/comment/add/${blogId}`, 
+        datatosend, 
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `token=${token}`, // Attach token in Cookie
+          },
+          withCredentials: true, // Attach cookie properly
+        }
+      );
+  
+      console.log("Comment Added:", res.data);
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  };
+  
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -23,66 +103,60 @@ export default function Blog() {
     }
   }
 
-  const getBlog = async () => {
-    try {
-      const res = await axios.get("http://192.168.31.65:4000/api/vi/post/getAllPost");
+  // Function to format the date into Indian date format (DD MMM YYYY, hh:mm AM/PM)
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const options = {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true, // For AM/PM format
+    };
+    return new Intl.DateTimeFormat('en-IN', options).format(date);  // en-IN is the locale for India
+  };
 
-      console.log(res.data);
-    } catch (error) {
-      
-    }
-  }
+  useEffect(() => {
+    getBlog();
+  }, [blogId]);
 
-  const blog = {
-    id: 1,
-    title: "Blog 1",
-    body: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    author: "John Doe",
-    comment: [
-      {
-        id: 1,
-        content: "Hello World",
-        user: "Pranav Gambhire",
-        createdAt: "2021-01-01"
-      },
-      {
-        id: 2,
-        content: "Hello World 2",
-        user: "Pranav Gambhire 2",
-        createdAt: "2021-01-01"
-      }
-    ]
+  if (!blog) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       <ScrollView>
-        {/* header */}
         <View>
+          {/* <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <AntDesign name="arrowleft" size={24} color="black" />
+          </TouchableOpacity> */}
           <Text style={styles.title}>{blog.title}</Text>
           <View style={styles.userContainer}>
             <TouchableOpacity>
-              <Text style={styles.authorLink}>{blog.author}</Text>
+              <Text style={styles.authorLink}>{blog.author.username}</Text>
             </TouchableOpacity>
-            <Text style={styles.date}>date</Text>
+            <Text style={styles.date}>{formatDate(blog.createdAt)}</Text>
           </View>
           <View style={styles.interactionContainer}>
             <View style={styles.likeContainer}>
               <TouchableOpacity onPress={handleLike}>
-                {!isLiked ? 
-                  <AntDesign name="like2" size={20} color="black"/> : 
-                  <AntDesign name="like1" size={20} color="black"/>
-                }
+                {!isLiked ?
+                  <AntDesign name="like2" size={20} color="black" /> :
+                  <AntDesign name="like1" size={20} color="black" />}
               </TouchableOpacity>
               <Text style={styles.interactionCount}>1000</Text>
             </View>
             <View style={styles.likeContainer}>
               <TouchableOpacity onPress={handleDislike}>
-                {!isDisliked ? 
-                  <AntDesign name="dislike2" size={20} color="black" /> : 
-                  <AntDesign name="dislike1" size={20} color="black" />
-                }
+                {!isDisliked ?
+                  <AntDesign name="dislike2" size={20} color="black" /> :
+                  <AntDesign name="dislike1" size={20} color="black" />}
               </TouchableOpacity>
               <Text style={styles.interactionCount}>1000</Text>
             </View>
@@ -91,7 +165,6 @@ export default function Blog() {
           <View style={styles.divider} />
         </View>
 
-        {/* Blog */}
         <View>
           <Image source={{ uri: blog.image }} style={styles.image} />
           <Text style={styles.blogContent}>{blog.body}</Text>
@@ -99,14 +172,13 @@ export default function Blog() {
           <View style={styles.divider} />
         </View>
 
-        {/* comments */}
         <View>
           <Text style={styles.sectionTitle}>Comments</Text>
 
           <Formik
             initialValues={{ comment: '' }}
             onSubmit={(values, { resetForm }) => {
-              console.log(values);
+              addComment(values);
               resetForm();
             }}
           >
@@ -119,33 +191,36 @@ export default function Blog() {
                   onBlur={handleBlur('comment')}
                   value={values.comment}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => handleSubmit()}
                   style={styles.sendButton}
                 >
-                  <Ionicons name="send" size={20} color="white"/>
+                  <Ionicons name="send" size={20} color="white" />
                 </TouchableOpacity>
               </View>
             )}
           </Formik>
 
           <View>
-            {blog.comment.map((comment, index) => (
+            {/* Reverse the comments array to show latest first */}
+            {blog.comments.reverse().map((comment: BlogComment, index: number) => (
               <View key={index} style={styles.commentContainer}>
                 <TouchableOpacity>
-                  <Text style={styles.commentUser}>{comment.user}</Text>
+                  <Text style={styles.commentUser}>{comment.user.username}</Text>
                 </TouchableOpacity>
-                <Text style={styles.commentDate}>{comment.createdAt}</Text>
+                <Text style={styles.commentDate}>
+                  {formatDate(comment.createdAt)} {/* Indian Date format */}
+                </Text>
                 <View style={styles.commentContent}>
                   <Text style={styles.commentText}>{comment.content}</Text>
                 </View>
               </View>
             ))}
           </View>
-          
+
           <View style={styles.divider} />
           <View style={styles.divider} />
-          
+
           <View style={styles.thankYouContainer}>
             <Text style={styles.thankYouText}>Thank You for reading the article</Text>
           </View>
@@ -263,5 +338,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 20,
     color: 'blue'
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20
   }
 });

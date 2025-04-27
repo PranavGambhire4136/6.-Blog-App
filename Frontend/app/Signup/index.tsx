@@ -3,11 +3,13 @@ import React from 'react'
 import axios from 'axios';
 import { Formik } from 'formik';
 import { useNavigation } from 'expo-router';
+import { useRouter } from "expo-router";
 
 export default function Signup() {
 
 
   const navigation = useNavigation();
+  const router = useRouter();
 
   const [otpSend, setOtpSend] = React.useState(false);
   const [useButton, setUseButton] = React.useState(true);
@@ -170,6 +172,16 @@ export default function Signup() {
         </Formik>
       </View>
 
+      <TouchableOpacity
+        onPress={() => router.push("/Login")}
+        style={[
+          styles.button,
+          { backgroundColor: !useButton ? "#566c71" : "#007AFF" }
+        ]}
+      >
+        <Text style={styles.buttonText}>Allready have an account</Text>
+      </TouchableOpacity>
+        
     </View>
   )
 }
