@@ -1,68 +1,142 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ScrollView, Picker } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BlogList from '../components/BlogList';
 
-export default function App() {
+interface UserProfile {
+  _id: string;
+  username: string;
+  email: string;
+  followers: string[];
+  following: string[];
+}
+
+export default function Profile() {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userPosts, setUserPosts] = useState([]);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchProfile = async () => {
+    try {
+      const tokenData = await AsyncStorage.getItem('token');
+      if (!tokenData) {
+        router.replace('/Login');
+        return;
+      }
+
+      const { token } = JSON.parse(tokenData);
+      const res = await axios.get(`http://192.168.31.65:4000/api/vi/user/profile/${id}`, {
+        headers: {
+          Cookie: `token=${token}`,
+        },
+        withCredentials: true,
+      });
+
+      setProfile(res.data.user);
+      
+      // Check if this is the user's own profile
+      const currentUser = await AsyncStorage.getItem('userId');
+      setIsOwnProfile(currentUser === id);
+
+      // Fetch user's posts
+      const postsRes = await axios.post(`http://192.168.31.65:4000/api/vi/post/getUserPost/${id}`);
+      setUserPosts(postsRes.data.posts);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const handleFollow = async () => {
+    try {
+      const tokenData = await AsyncStorage.getItem('token');
+      if (!tokenData) {
+        router.replace('/Login');
+        return;
+      }
+
+      const { token } = JSON.parse(tokenData);
+      await axios.post(
+        `http://192.168.31.65:4000/api/vi/follow/${id}`,
+        {},
+        {
+          headers: {
+            Cookie: `token=${token}`,
+          },
+          withCredentials: true,
+        }
+      );
+
+      // Refresh profile data
+      fetchProfile();
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchProfile().finally(() => setRefreshing(false));
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [id]);
+
+  if (!profile) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Back Arrow */}
-      <TouchableOpacity style={styles.backButton}>
-        <Text style={styles.backText}>←</Text>
-      </TouchableOpacity>
-
-      {/* Profile Picture */}
-      <Image
-        source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-        style={styles.profileImage}
-      />
-
-      {/* Name and Date */}
-      <Text style={styles.name}>Frances Swann</Text>
-      <Text style={styles.date}>Member since March 2019</Text>
-
-      {/* Form */}
-      <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="frances.swann@example.com"
-          placeholderTextColor="#aaa"
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.header}>
+        <Image
+          source={{ uri: 'https://via.placeholder.com/100' }}
+          style={styles.profileImage}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Frances Swann"
-          placeholderTextColor="#aaa"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="********"
-          placeholderTextColor="#aaa"
-          secureTextEntry
-        />
-
-        {/* Date of Birth Section */}
-        <View style={styles.dobContainer}>
-          <TextInput
-            style={styles.dobInput}
-            placeholder="31"
-            placeholderTextColor="#aaa"
-            keyboardType="numeric"
-          />
-          <TextInput
-            style={styles.dobInput}
-            placeholder="October"
-            placeholderTextColor="#aaa"
-          />
-          <TextInput
-            style={styles.dobInput}
-            placeholder="1996"
-            placeholderTextColor="#aaa"
-            keyboardType="numeric"
-          />
+        <Text style={styles.username}>{profile.username}</Text>
+        <Text style={styles.email}>{profile.email}</Text>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{userPosts.length}</Text>
+            <Text style={styles.statLabel}>Posts</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{profile.followers.length}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{profile.following.length}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </View>
         </View>
 
-        {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
+        {!isOwnProfile && (
+          <TouchableOpacity style={styles.followButton} onPress={handleFollow}>
+            <Text style={styles.followButtonText}>
+              {profile.followers.includes(id) ? 'Unfollow' : 'Follow'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.postsSection}>
+        <Text style={styles.sectionTitle}>Posts</Text>
+        <BlogList blogs={userPosts} />
       </View>
     </ScrollView>
   );
@@ -70,74 +144,65 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#F7F8FA',
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 20,
-  },
-  backText: {
-    fontSize: 24,
-    color: '#333',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 15,
+    marginBottom: 10,
   },
-  name: {
-    fontSize: 20,
+  username: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    marginBottom: 5,
   },
-  date: {
-    fontSize: 14,
+  email: {
+    fontSize: 16,
     color: '#666',
-    marginBottom: 30,
-  },
-  form: {
-    width: '100%',
-  },
-  input: {
-    height: 50,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 15,
     marginBottom: 15,
-    fontSize: 16,
-    borderColor: '#ddd',
-    borderWidth: 1,
   },
-  dobContainer: {
+  statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 30,
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 15,
   },
-  dobInput: {
-    flex: 1,
-    height: 50,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    marginHorizontal: 5,
-  },
-  saveButton: {
-    height: 55,
-    backgroundColor: '#0066FF',
-    borderRadius: 30,
-    justifyContent: 'center',
+  statItem: {
     alignItems: 'center',
   },
-  saveButtonText: {
-    color: '#fff',
+  statNumber: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  followButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 30,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  followButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  postsSection: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
   },
 });

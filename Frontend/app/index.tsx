@@ -7,43 +7,56 @@ import { useRouter } from "expo-router";
 import { useNavigation } from '@react-navigation/native';
 import Octicons from '@expo/vector-icons/Octicons';
 import Entypo from '@expo/vector-icons/Entypo';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import SideBar from "./components/SideBar";
 import axios from "axios";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Index() {
   const [isSideBar, setIsSideBar] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
   const navigation = useNavigation();
-  // const blogs = [
-  //   {
-  //     id: 1,
-  //     title: "Blog 1",
-  //     body: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-  //     image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-  //     author: "John Doe"
-  //   },
-  //   {
-  //     id: 2,
-  //     title: "Blog 2",
-  //     body: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-  //     image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-  //     author: "John Doe"
-  //   },
-  //   {
-  //     id: 3,
-  //     title: "Blog 3",
-  //     body: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-  //     image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-  //     author: "John Doe"
-  //   }
-  // ]
-
   const [blogs, setBlogs] = useState([]);
+
+  const checkAuthStatus = async () => {
+    try {
+      const tokenData = await AsyncStorage.getItem('token');
+      if (!tokenData) {
+        setIsLoggedIn(false);
+        return;
+      }
+
+      const { token, expiresAt } = JSON.parse(tokenData);
+      
+      // Check if token has expired
+      if (Date.now() > expiresAt) {
+        await AsyncStorage.removeItem('token');
+        setIsLoggedIn(false);
+        return;
+      }
+
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.error("Auth check error:", error);
+      setIsLoggedIn(false);
+      await AsyncStorage.removeItem('token');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      setIsLoggedIn(false);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   const getBlog = async () => {
     try {
       console.log("starting fetching")
       const res = await axios.post("http://192.168.31.65:4000/api/vi/post/getAllPost");
-
       console.log(res.data.posts);
       setBlogs(res.data.posts);
     } catch (error) {
@@ -52,9 +65,18 @@ export default function Index() {
   }
 
   useEffect(() => {
+    checkAuthStatus();
     getBlog();
-  }, [])
+  }, []);
 
+  // Add listener for when the component comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      checkAuthStatus();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
@@ -63,20 +85,38 @@ export default function Index() {
         backgroundColor="#fff"
       />
 
-      {/* <SideBar /> */}
-      {/* <Text style={styles.title}>Home</Text> */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Blog App</Text>
+        {isLoggedIn && (
+          <View style={styles.headerButtons}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => router.push('/blog/create')}
+            >
+              <MaterialIcons name="post-add" size={24} color="#34C759" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={handleLogout}
+            >
+              <MaterialIcons name="logout" size={24} color="#FF3B30" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
       <ScrollView style={styles.scrollView}>
         {blogs.reverse().map((blog) => <BlogList key={blog._id} blog={blog} />)}
       </ScrollView>
 
-        {/* <Blog /> */}
-
-      <TouchableOpacity 
-        style={styles.signupButton}
-        onPress={() => router.push("/Login")}
-      >
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
+      {!isLoggedIn && (
+        <TouchableOpacity 
+          style={styles.signupButton}
+          onPress={() => router.push("/Login")}
+        >
+          <Text style={styles.buttonText}>Login to Create Blog</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -87,10 +127,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    marginLeft: 16,
+    padding: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginVertical: 16
   },
   scrollView: {
     flex: 1

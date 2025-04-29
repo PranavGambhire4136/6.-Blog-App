@@ -9,5 +9,8 @@ router.post("/login", login);
 router.post("/singUpInit", singUpInit);
 router.post("/verifyOtp", verifyOtp);
 router.get("/logout", isThere, logout);
+router.get("/verify", isThere, (req, res) => {
+  res.json({ success: true, user: req.user });
+});
 
 export default router;
