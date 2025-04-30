@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Formik } from 'formik';
 import { useNavigation } from 'expo-router';
 import { useRouter } from "expo-router";
+import { Stack } from 'expo-router';
 
 export default function Signup() {
 
@@ -36,6 +37,7 @@ export default function Signup() {
   return (
 
     <View style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
       <Text style={styles.heading}>SignUp</Text>
       <View style={styles.form}>
         <Formik

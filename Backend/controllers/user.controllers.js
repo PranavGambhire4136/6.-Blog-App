@@ -125,3 +125,35 @@ export const logout = async (req, res) => {
         res.status(500).json({ success: false, message: "Internal server error" }); 
     }
 }
+
+export const getUserProfile = async (req, res) => {
+    try {
+        console.log("started in profile");
+        console.log(req.params);
+        const { userId } = req.params;
+        const user = await User.findById(userId).select('-password').populate("posts");
+        console.log(user);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        console.log("completed");
+        res.status(200).json({ success: true, user });
+
+    } catch (error) {
+        console.error("error while getting user profile", error.message);
+        res.status(500).json({ success: false, message: "Internal server error" }); 
+    }
+}
+
+export const getMyProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password');
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        res.status(200).json({ success: true, user });
+    } catch (error) {
+        console.error("error while getting my profile", error.message);
+        res.status(500).json({ success: false, message: "Internal server error" }); 
+    }
+}

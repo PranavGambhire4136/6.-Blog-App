@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack } from 'expo-router';
 
 export default function CreateBlog() {
   const router = useRouter();
@@ -42,16 +43,19 @@ export default function CreateBlog() {
 
       const { token } = JSON.parse(tokenData);
 
-      // First, upload the image to get its URL
       const formData = new FormData();
-      formData.append('image', {
+      formData.append('title', title);
+      formData.append('body', content);
+      formData.append('img', {
         uri: image,
+        name: 'photo.jpg',
         type: 'image/jpeg',
-        name: 'blog_image.jpg',
       });
+      
 
-      const imageRes = await axios.post(
-        'http://192.168.31.65:4000/api/vi/post/uploadImage',
+
+      await axios.post(
+        'http://192.168.31.65:4000/api/vi/post/create',
         formData,
         {
           headers: {
@@ -62,29 +66,8 @@ export default function CreateBlog() {
         }
       );
 
-      const imageUrl = imageRes.data.url;
-
-      // Then create the blog post
-      const blogData = {
-        title,
-        body: content,
-        image: imageUrl,
-      };
-
-      await axios.post(
-        'http://192.168.31.65:4000/api/vi/post/create',
-        blogData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Cookie: `token=${token}`,
-          },
-          withCredentials: true,
-        }
-      );
-
       Alert.alert('Success', 'Blog post created successfully!');
-      router.back();
+      router.push('/');
     } catch (error) {
       console.error('Error creating blog:', error);
       Alert.alert('Error', 'Failed to create blog post. Please try again.');
@@ -94,50 +77,54 @@ export default function CreateBlog() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Create New Blog</Text>
-      </View>
 
-      <View style={styles.form}>
-        <TextInput
-          style={styles.titleInput}
-          placeholder="Blog Title"
-          value={title}
-          onChangeText={setTitle}
-          placeholderTextColor="#666"
-        />
+    <View>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerText}>Create New Blog</Text>
+        </View>
 
-        <TextInput
-          style={styles.contentInput}
-          placeholder="Write your blog content..."
-          value={content}
-          onChangeText={setContent}
-          multiline
-          placeholderTextColor="#666"
-        />
+        <View style={styles.form}>
+          <TextInput
+            style={styles.titleInput}
+            placeholder="Blog Title"
+            value={title}
+            onChangeText={setTitle}
+            placeholderTextColor="#666"
+          />
 
-        <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-          <Text style={styles.imageButtonText}>
-            {image ? 'Change Image' : 'Add Cover Image'}
-          </Text>
-        </TouchableOpacity>
+          <TextInput
+            style={styles.contentInput}
+            placeholder="Write your blog content..."
+            value={content}
+            onChangeText={setContent}
+            multiline
+            placeholderTextColor="#666"
+          />
 
-        {image && (
-          <Image source={{ uri: image }} style={styles.previewImage} />
-        )}
+          <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
+            <Text style={styles.imageButtonText}>
+              {image ? 'Change Image' : 'Add Cover Image'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={isLoading}
-        >
-          <Text style={styles.submitButtonText}>
-            {isLoading ? 'Creating...' : 'Create Blog'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          {image && (
+            <Image source={{ uri: image }} style={styles.previewImage} />
+          )}
+
+          <TouchableOpacity
+            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={isLoading}
+          >
+            <Text style={styles.submitButtonText}>
+              {isLoading ? 'Creating...' : 'Create Blog'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 

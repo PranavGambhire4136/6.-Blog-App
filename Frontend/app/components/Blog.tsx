@@ -121,6 +121,8 @@ export default function Blog({ blogId }: BlogProps) {
     getBlog();
   }, [blogId]);
 
+
+
   if (!blog) {
     return (
       <View style={styles.container}>
@@ -138,7 +140,9 @@ export default function Blog({ blogId }: BlogProps) {
           </TouchableOpacity> */}
           <Text style={styles.title}>{blog.title}</Text>
           <View style={styles.userContainer}>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push(`/Profile/${blog?.author._id}`)}
+            >
               <Text style={styles.authorLink}>{blog.author.username}</Text>
             </TouchableOpacity>
             <Text style={styles.date}>{formatDate(blog.createdAt)}</Text>
@@ -205,7 +209,7 @@ export default function Blog({ blogId }: BlogProps) {
             {/* Reverse the comments array to show latest first */}
             {blog.comments.reverse().map((comment: BlogComment, index: number) => (
               <View key={index} style={styles.commentContainer}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push(`/Profile/${comment.user._id}`)}>
                   <Text style={styles.commentUser}>{comment.user.username}</Text>
                 </TouchableOpacity>
                 <Text style={styles.commentDate}>

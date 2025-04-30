@@ -11,6 +11,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import SideBar from "./components/SideBar";
 import axios from "axios";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { jwtDecode } from 'jwt-decode';
+import { Stack } from 'expo-router';
 
 export default function Index() {
   const [isSideBar, setIsSideBar] = useState(false);
@@ -28,7 +31,7 @@ export default function Index() {
       }
 
       const { token, expiresAt } = JSON.parse(tokenData);
-      
+
       // Check if token has expired
       if (Date.now() > expiresAt) {
         await AsyncStorage.removeItem('token');
@@ -52,6 +55,27 @@ export default function Index() {
       console.error("Logout error:", error);
     }
   };
+
+  const Profile = async () => {
+    try {
+      const tokenData = await AsyncStorage.getItem('token');
+      if (!tokenData) {
+        router.replace('/Login');
+        return;
+      }
+
+      const parsedTokenData = JSON.parse(tokenData);
+      const token = parsedTokenData.token;
+      // console.log("token", token);
+
+      // Decode the token
+      const decoded = jwtDecode(token);
+      // console.log(decoded.userId);
+      router.push(`/Profile/${decoded.userId}`);
+    } catch (error) {
+      console.error("Profile error:", error);
+    }
+  }
 
   const getBlog = async () => {
     try {
@@ -84,22 +108,37 @@ export default function Index() {
         barStyle="dark-content"
         backgroundColor="#fff"
       />
+      <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
         <Text style={styles.title}>Blog App</Text>
         {isLoggedIn && (
+          // <View style={styles.headerButtons}>
+          //   <TouchableOpacity 
+          //     style={styles.iconButton}
+          //     onPress={() => router.push('/blog/create')}
+          //   >
+          //     <MaterialIcons name="post-add" size={24} color="#34C759" />
+          //   </TouchableOpacity>
+          //   <TouchableOpacity 
+          //     style={styles.iconButton}
+          //     onPress={handleLogout}
+          //   >
+          //     <MaterialIcons name="logout" size={24} color="#FF3B30" />
+          //   </TouchableOpacity>
+          // </View>
+
           <View style={styles.headerButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => router.push('/blog/create')}
+              onPress={() => Profile()}
             >
-              <MaterialIcons name="post-add" size={24} color="#34C759" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={handleLogout}
-            >
-              <MaterialIcons name="logout" size={24} color="#FF3B30" />
+              <Image
+                source={{
+                  uri: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                }}
+                style={styles.profileImage}
+              />
             </TouchableOpacity>
           </View>
         )}
@@ -110,7 +149,7 @@ export default function Index() {
       </ScrollView>
 
       {!isLoggedIn && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.signupButton}
           onPress={() => router.push("/Login")}
         >
@@ -144,6 +183,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 50,
+    marginBottom: 10,
   },
   scrollView: {
     flex: 1

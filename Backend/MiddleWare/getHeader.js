@@ -4,7 +4,7 @@ configDotenv();
 
 export const isThere = (req, res, next) => {
     // console.log("getHeader started");
-    console.log(req.cookies)
+    // console.log(req.cookies)
     const headerToken = req.cookies.token;
     // console.log("from getHeader",headerToken);
 
@@ -16,6 +16,6 @@ export const isThere = (req, res, next) => {
     if (!headerToken) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
-    console.log("getHeader completed");
+    // console.log("getHeader completed");
     next();
 }

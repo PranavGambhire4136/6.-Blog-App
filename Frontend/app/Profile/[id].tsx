@@ -1,9 +1,11 @@
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BlogList from '../components/BlogList';
+import {jwtDecode} from 'jwt-decode';
+import { Stack } from 'expo-router';
 
 interface UserProfile {
   _id: string;
@@ -19,7 +21,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userPosts, setUserPosts] = useState([]);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+
 
   const fetchProfile = async () => {
     try {
@@ -38,50 +40,18 @@ export default function Profile() {
       });
 
       setProfile(res.data.user);
-      
-      // Check if this is the user's own profile
-      const currentUser = await AsyncStorage.getItem('userId');
-      setIsOwnProfile(currentUser === id);
+      setUserPosts(res.data.user.posts);
 
-      // Fetch user's posts
-      const postsRes = await axios.post(`http://192.168.31.65:4000/api/vi/post/getUserPost/${id}`);
-      setUserPosts(postsRes.data.posts);
+      const decoded = jwtDecode(token);
+
+      if (decoded.userId == id) {
+        setIsOwnProfile(true);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
   };
 
-  const handleFollow = async () => {
-    try {
-      const tokenData = await AsyncStorage.getItem('token');
-      if (!tokenData) {
-        router.replace('/Login');
-        return;
-      }
-
-      const { token } = JSON.parse(tokenData);
-      await axios.post(
-        `http://192.168.31.65:4000/api/vi/follow/${id}`,
-        {},
-        {
-          headers: {
-            Cookie: `token=${token}`,
-          },
-          withCredentials: true,
-        }
-      );
-
-      // Refresh profile data
-      fetchProfile();
-    } catch (error) {
-      console.error('Error following user:', error);
-    }
-  };
-
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    fetchProfile().finally(() => setRefreshing(false));
-  }, []);
 
   useEffect(() => {
     fetchProfile();
@@ -96,47 +66,52 @@ export default function Profile() {
   }
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+    <ScrollView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Image
-          source={{ uri: 'https://via.placeholder.com/100' }}
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+          }}
           style={styles.profileImage}
         />
+
         <Text style={styles.username}>{profile.username}</Text>
         <Text style={styles.email}>{profile.email}</Text>
-        
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{userPosts.length}</Text>
             <Text style={styles.statLabel}>Posts</Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{profile.followers.length}</Text>
-            <Text style={styles.statLabel}>Followers</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{profile.following.length}</Text>
-            <Text style={styles.statLabel}>Following</Text>
-          </View>
         </View>
 
-        {!isOwnProfile && (
-          <TouchableOpacity style={styles.followButton} onPress={handleFollow}>
-            <Text style={styles.followButtonText}>
-              {profile.followers.includes(id) ? 'Unfollow' : 'Follow'}
-            </Text>
+        {isOwnProfile && <View style={{ flexDirection: 'row', marginTop: 10 }}>
+          <TouchableOpacity
+            style={[styles.followButton, { backgroundColor: '#34C759', marginRight: 10 }]}
+            onPress={() => router.push('/blog/create')}
+          >
+            <Text style={styles.followButtonText}>Create New Blog</Text>
           </TouchableOpacity>
-        )}
+          <TouchableOpacity
+            style={[styles.followButton, { backgroundColor: '#FF3B30' }]}
+            onPress={async () => {
+              await AsyncStorage.removeItem('token');
+              await AsyncStorage.removeItem('userId');
+              router.replace('/');
+            }}
+          >
+            <Text style={styles.followButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>}
+
       </View>
 
       <View style={styles.postsSection}>
         <Text style={styles.sectionTitle}>Posts</Text>
-        <BlogList blogs={userPosts} />
+        {/* <BlogList blogs={userPosts} /> */}
+        {userPosts.map((post) => (
+          <BlogList key={post._id} blog={post} />
+        ))}
       </View>
     </ScrollView>
   );

@@ -4,6 +4,7 @@ import { Formik } from 'formik';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 
 interface LoginValues {
   email: string;
@@ -35,6 +36,7 @@ export default function Login() {
           token,
           expiresAt: Date.now() + 3600000 // Current time + 1 hour
         });
+        // console.log("login data",data);
         await AsyncStorage.setItem("token", data);
         
         console.log("Login successful!");
@@ -50,6 +52,7 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Text style={styles.heading}>Login</Text>
       <View style={styles.form}>
         <Formik<LoginValues>
